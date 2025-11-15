@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QMessageBox, QComboBox, QTabWidget,
-    QTextEdit, QListWidget, QFileDialog, QSplitter, QSizePolicy
+    QTextEdit, QListWidget, QFileDialog
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
@@ -14,7 +14,6 @@ from utils.history_manager import HistoryManager
 from utils.pdf_exporter import PDFExporter
 from ui_main import QSS
 
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 class MainWindow(QWidget):
@@ -82,25 +81,16 @@ class MainWindow(QWidget):
         btn_layout.addWidget(self.btn_export)
         v.addLayout(btn_layout)
 
-        # resultado e canvas
+        # resultado
         self.lbl_result = QLabel("Resultado: -")
         self.lbl_result.setFont(QFont("Segoe UI", 14))
         v.addWidget(self.lbl_result)
 
-        # area para mostrar gráficos de pertinência em miniatura
-        mini_split = QHBoxLayout()
-        self.canvas_febre = None
-        self.canvas_tosse = None
-        self.canvas_sat = None
-
+        # figuras para preview (inicializadas na ação)
         self.fig_feb = None
         self.fig_tos = None
         self.fig_sat = None
         self.fig_risk = None
-
-        mini_split_widget = QWidget()
-        mini_split_widget.setLayout(mini_split)
-        v.addWidget(mini_split_widget)
 
         w.setLayout(v)
         return w
