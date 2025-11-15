@@ -12,7 +12,7 @@ from fuzzy_engine.diagnostico_fuzzy import DiagnosticoFuzzy
 from fuzzy_engine.fuzzy_plotter import FuzzyPlotter
 from utils.history_manager import HistoryManager
 from utils.pdf_exporter import PDFExporter
-from app.ui_main import QSS
+from ui_main import QSS
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
