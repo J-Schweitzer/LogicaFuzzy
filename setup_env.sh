@@ -62,23 +62,38 @@ else
 fi
 
 # 3) Instalar dependências principais via conda (conda-forge)
-echo "Instalando pacotes via conda (canal conda-forge): pyqt matplotlib numpy scipy pip"
-conda install -y -n "$ENV_NAME" -c conda-forge pyqt matplotlib numpy scipy pip
+echo "Instalando/reforçando pacotes via conda (canal conda-forge)..."
+conda install -y -n "$ENV_NAME" -c conda-forge matplotlib numpy scipy 2>&1 || {
+  echo "Aviso: instalação conda falhou parcialmente. Continuando..."
+}
 
-# 4) Instalar pacotes pip no ambiente (scikit-fuzzy, fpdf)
-echo "Instalando pacotes pip no ambiente: scikit-fuzzy, fpdf"
-conda run -n "$ENV_NAME" pip install --upgrade pip
-conda run -n "$ENV_NAME" pip install scikit-fuzzy fpdf
+# 4) Instalar pacotes pip no ambiente (PyQt5, scikit-fuzzy, fpdf, matplotlib, numpy, scipy via pip para garantir compatibilidade)
+echo "Instalando/reforçando pacotes pip no ambiente..."
+conda run -n "$ENV_NAME" pip install --upgrade pip 2>&1 || true
+
+# Instalar todos os pacotes via pip (mais confiável para PyQt5)
+echo "Instalando dependências principais via pip..."
+conda run -n "$ENV_NAME" pip install PyQt5 matplotlib numpy scipy scikit-fuzzy fpdf 2>&1 || {
+  echo "Erro: falha ao instalar dependências via pip."
+  exit 1
+}
 
 # 5) Criar script executável para rodar a aplicação sem ativar manualmente o env
 RUN_SH="$PROJECT_DIR/run_fuzzy.sh"
-cat > "$RUN_SH" <<'EOF'
+cat > "$RUN_SH" << 'EOF'
 #!/usr/bin/env bash
 set -e
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-"
-# usa conda run para executar dentro do ambiente sem ativar
-conda run -n Fuzzy python3 "$SCRIPT_DIR/app/main.py"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Inicializar conda no shell
+eval "$(conda shell.bash hook)"
+
+# Ativar o ambiente Fuzzy
+conda activate Fuzzy
+
+# Executar a aplicação dentro do ambiente ativado
+python3 "$SCRIPT_DIR/app/main.py"
 EOF
 chmod +x "$RUN_SH"
 
@@ -88,14 +103,21 @@ mkdir -p "$DESKTOP_DIR"
 DESKTOP_FILE="$DESKTOP_DIR/fuzzy-diagnostico.desktop"
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
+Version=1.0
 Name=Fuzzy Diagnóstico
 Comment=Diagnóstico Médico - Fuzzy
-Exec=$RUN_SH
-Icon=
-Terminal=false
+Exec=bash -c 'cd "$PROJECT_DIR" && bash "$PROJECT_DIR/run_fuzzy.sh"'
+Icon=application-x-executable
+Terminal=true
 Type=Application
-Categories=Utility;
+Categories=Utility;Education;Science;
 EOF
+
+# Garantir que o arquivo .desktop seja executável e atualizar banco de dados
+chmod +x "$DESKTOP_FILE" 2>/dev/null || true
+if command_exists update-desktop-database; then
+  update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
+fi
 
 echo "\nInstalação concluída."
 echo "- Ambiente conda: $ENV_NAME"
@@ -105,5 +127,11 @@ echo "- Atalho desktop criado em: $DESKTOP_FILE"
 echo "Para testar agora, execute:\n  $RUN_SH"
 
 echo "Se o ícone não aparecer no menu imediatamente, execute:\n  update-desktop-database ~/.local/share/applications || true"
+
+# 7) Iniciar aplicação executando run_fuzzy.sh
+echo ""
+echo "Iniciando a aplicação agora..."
+echo "================================"
+bash "$RUN_SH" 
 
 exit 0
