@@ -53,6 +53,28 @@ else
   exit 1
 fi
 
+# 1.5) Instalar dependências do sistema necessásrias para PyQt5 (libxcb e outras)
+echo "Instalando dependências do sistema necessárias para PyQt5..."
+if command_exists apt-get; then
+  sudo apt-get update -y
+  sudo apt-get install -y \
+    libxcb-xinerama0 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-randr0 \
+    libxcb-render-util0 \
+    libxcb-shm0 \
+    libxcb-sync1 \
+    libxcb-util1 \
+    libxcb-xfixes0 \
+    libxcb-xkb1
+else
+  echo "Aviso: apt-get não encontrado. Não foi possível instalar dependências libxcb automaticamente."
+  echo "O usuário pode precisar instalar manualmente os pacotes equivalentes."
+fi
+
+
 # 2) Criar ambiente se não existir
 if conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
   echo "Ambiente conda '$ENV_NAME' já existe. Pulando criação."
