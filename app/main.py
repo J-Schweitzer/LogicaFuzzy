@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
+from pathlib import Path
 
 from fuzzy_engine.diagnostico_fuzzy import DiagnosticoFuzzy
 from fuzzy_engine.fuzzy_plotter import FuzzyPlotter
@@ -65,6 +66,20 @@ class MainWindow(QWidget):
         self.input_sat = QLineEdit()
         self.input_sat.setPlaceholderText("Saturação (%) — ex: 89")
 
+        # tooltips com intervalos válidos (obtidos do motor fuzzy)
+        try:
+            fmin = float(self.engine.febre.universe[0])
+            fmax = float(self.engine.febre.universe[-1])
+            tmin = float(self.engine.tosse.universe[0])
+            tmax = float(self.engine.tosse.universe[-1])
+            smin = float(self.engine.saturacao.universe[0])
+            smax = float(self.engine.saturacao.universe[-1])
+            self.input_febre.setToolTip(f"Intervalo válido: {fmin} — {fmax} °C (use . ou , para decimais)")
+            self.input_tosse.setToolTip(f"Intervalo válido: {tmin} — {tmax}")
+            self.input_sat.setToolTip(f"Intervalo válido: {smin} — {smax} %")
+        except Exception:
+            # se algo falhar, não bloquear UI — tooltips serão omitidos
+            pass
         form.addWidget(self.combo_disease)
         form.addWidget(self.input_febre)
         form.addWidget(self.input_tosse)
@@ -162,6 +177,45 @@ class MainWindow(QWidget):
             s += "\n"
         self.txt_regras.setPlainText(s)
 
+    def _get_input_values(self):
+        """Lê os campos de entrada, aceita vírgula como separador decimal,
+        converte para float e valida os intervalos definidos no motor fuzzy.
+        Retorna tuple (feb, tos, sat) ou None se inválido (já mostra mensagem)."""
+        try:
+            feb_text = self.input_febre.text().strip().replace(',', '.')
+            tos_text = self.input_tosse.text().strip().replace(',', '.')
+            sat_text = self.input_sat.text().strip().replace(',', '.')
+            feb = float(feb_text)
+            tos = float(tos_text)
+            sat = float(sat_text)
+        except Exception:
+            QMessageBox.warning(self, "Erro", "Preencha os valores corretamente (use ponto ou vírgula para decimais).")
+            return None
+
+        # limites a partir do motor fuzzy
+        try:
+            fmin = float(self.engine.febre.universe[0])
+            fmax = float(self.engine.febre.universe[-1])
+            tmin = float(self.engine.tosse.universe[0])
+            tmax = float(self.engine.tosse.universe[-1])
+            smin = float(self.engine.saturacao.universe[0])
+            smax = float(self.engine.saturacao.universe[-1])
+        except Exception:
+            # se não for possível obter limites, aceitar qualquer float
+            return feb, tos, sat
+
+        if not (fmin <= feb <= fmax):
+            QMessageBox.warning(self, "Valor fora do intervalo", f"Febre deve estar entre {fmin} e {fmax} °C.")
+            return None
+        if not (tmin <= tos <= tmax):
+            QMessageBox.warning(self, "Valor fora do intervalo", f"Tosse deve estar entre {tmin} e {tmax}.")
+            return None
+        if not (smin <= sat <= smax):
+            QMessageBox.warning(self, "Valor fora do intervalo", f"Saturação deve estar entre {smin} e {smax} %.")
+            return None
+
+        return feb, tos, sat
+
     # --- Tab Histórico ---
     def _tab_historico(self):
         w = QWidget()
@@ -202,13 +256,10 @@ class MainWindow(QWidget):
 
     # --- Events ---
     def on_calcular(self):
-        try:
-            feb = float(self.input_febre.text())
-            tos = float(self.input_tosse.text())
-            sat = float(self.input_sat.text())
-        except:
-            QMessageBox.warning(self, "Erro", "Preencha os valores corretamente.")
+        vals = self._get_input_values()
+        if not vals:
             return
+        feb, tos, sat = vals
 
         disease = self.combo_disease.currentText()
         risco, fired, sim = self.engine.calcular_risco(disease, feb, tos, sat)
@@ -258,13 +309,10 @@ class MainWindow(QWidget):
 
     def on_exportar(self):
         # pega último valores do formulário
-        try:
-            feb = float(self.input_febre.text())
-            tos = float(self.input_tosse.text())
-            sat = float(self.input_sat.text())
-        except:
-            QMessageBox.warning(self, "Erro", "Preencha os valores corretamente para exportar.")
+        vals = self._get_input_values()
+        if not vals:
             return
+        feb, tos, sat = vals
         disease = self.combo_disease.currentText()
         risco, fired, sim = self.engine.calcular_risco(disease, feb, tos, sat)
         # criar figuras atuais (caso não existam)
