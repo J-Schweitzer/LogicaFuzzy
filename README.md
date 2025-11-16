@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Diagnóstico Médico com Lógica Fuzzy
 
 Este é um projeto de aplicação desktop desenvolvida em Python e PyQt5 que utiliza Lógica Fuzzy (Fuzzy Logic) para calcular o risco de diagnóstico médico com base em sintomas. A aplicação permite que o usuário insira valores para febre, tosse e saturação de oxigênio para estimar um percentual de risco.
