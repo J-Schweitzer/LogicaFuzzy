@@ -73,7 +73,7 @@ conda run -n "$ENV_NAME" pip install --upgrade pip 2>&1 || true
 
 # Instalar todos os pacotes via pip (mais confiável para PyQt5)
 echo "Instalando dependências principais via pip..."
-conda run -n "$ENV_NAME" pip install PyQt5 matplotlib numpy scipy scikit-fuzzy fpdf 2>&1 || {
+conda run -n "$ENV_NAME" pip install PyQt5 matplotlib numpy scipy scikit-fuzzy fpdf networkx 2>&1 || {
   echo "Erro: falha ao instalar dependências via pip."
   exit 1
 }
@@ -101,12 +101,18 @@ chmod +x "$RUN_SH"
 DESKTOP_DIR="$HOME/.local/share/applications"
 mkdir -p "$DESKTOP_DIR"
 DESKTOP_FILE="$DESKTOP_DIR/fuzzy-diagnostico.desktop"
+
+# Detectar base do conda para que o atalho possa iniciar o ambiente corretamente
+CONDA_BASE="$(conda info --base 2>/dev/null || echo "$HOME/miniconda3")"
+
+# Escrever .desktop com um Exec que inicializa o conda e ativa o ambiente antes de rodar a app.
+# Uso de bash -lc garante que o gerenciador de janelas execute um shell login compatível
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Version=1.0
 Name=Fuzzy Diagnóstico
 Comment=Diagnóstico Médico - Fuzzy
-Exec=bash -c 'cd "$PROJECT_DIR" && bash "$PROJECT_DIR/run_fuzzy.sh"'
+Exec=bash -lc 'if [ -f "${CONDA_BASE}/etc/profile.d/conda.sh" ]; then . "${CONDA_BASE}/etc/profile.d/conda.sh"; fi; conda activate Fuzzy >/dev/null 2>&1; python3 "${PROJECT_DIR}/app/main.py"'
 Icon=application-x-executable
 Terminal=true
 Type=Application
